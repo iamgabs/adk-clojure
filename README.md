@@ -4,6 +4,15 @@
 [![Made with Clojure](https://img.shields.io/badge/made%20with-Clojure-5881D8.svg)](https://clojure.org)
 [![Last commit](https://img.shields.io/github/last-commit/iamgabs/adk-clojure.svg)](https://github.com/iamgabs/adk-clojure/commits/main)
 
+<h2 align="center">
+  <img src="https://raw.githubusercontent.com/google/adk-python/main/assets/agent-development-kit.png" width="256"/>
+</h2>
+<p align="center">
+  <sub>ADK logo &copy; Google, from
+  <a href="https://github.com/google/adk-python">google/adk-python</a> —
+  shown here only to identify the upstream project this is a port of.</sub>
+</p>
+
 <h3 align="center">
   A native, idiomatic Clojure port of the execution core of the
   <a href="https://google.github.io/adk-docs/">Google Agent Development Kit (ADK)</a>.
