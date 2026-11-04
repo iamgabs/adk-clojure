@@ -9,7 +9,16 @@
   {:extra-paths ["test"]
    :extra-deps {io.github.cognitect-labs/test-runner
                 {:git/tag "v0.5.1"
-                 :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}}
+                 :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}
+                ;; SDK do MCP: opcional por design (não entra em :deps) — só
+                ;; aqui no core precisamos dele pra rodar/testar
+                ;; adk.tools.mcp. Quem for usar adk.tools.mcp no SEU próprio
+                ;; projeto precisa adicionar isso ao seu deps.edn. Usamos
+                ;; mcp-core + mcp-json-jackson2 (não o aggregator `mcp`) pra
+                ;; reaproveitar o Jackson 2.x que o google-genai já traz, em
+                ;; vez de puxar uma segunda pilha Jackson 3.
+                io.modelcontextprotocol.sdk/mcp-core {:mvn/version "2.1.0"}
+                io.modelcontextprotocol.sdk/mcp-json-jackson2 {:mvn/version "2.1.0"}}
    ;; Testes marcados com ^:integration (ex: chamadas reais ao Gemini) ficam
    ;; de fora por padrão — ver test/adk/genai/content_test.clj.
    :exec-fn cognitect.test-runner.api/test
@@ -20,7 +29,9 @@
   {:extra-paths ["test"]
    :extra-deps {io.github.cognitect-labs/test-runner
                 {:git/tag "v0.5.1"
-                 :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}}
+                 :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}
+                io.modelcontextprotocol.sdk/mcp-core {:mvn/version "2.1.0"}
+                io.modelcontextprotocol.sdk/mcp-json-jackson2 {:mvn/version "2.1.0"}}
    :main-opts ["-m" "cognitect.test-runner"]}
 
   :build

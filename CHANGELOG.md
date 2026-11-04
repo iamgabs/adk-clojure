@@ -41,6 +41,14 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
   - `adk.tools.vertex-ai-rag-retrieval/vertex-ai-rag-retrieval-tool` —
     retrieval contra corpora do Vertex AI RAG Engine (exige
     `:rag-corpora`).
+- **MCP toolset**: `adk.tools.mcp` conecta a um servidor MCP via stdio
+  usando o SDK Java oficial (`io.modelcontextprotocol.sdk`, o mesmo que o
+  adk-java usa) e envolve cada tool do servidor como `adk.tools/Tool`.
+  Dependência OPCIONAL (não entra em `:deps` do adk-clojure — adicione
+  `mcp-core` + `mcp-json-jackson2` ao seu próprio projeto pra usar). Modelo
+  de uso: `connect!` conecta e faz o handshake, `mcp-tools` lista e envolve
+  as tools UMA VEZ (vetor estático, não um toolset dinâmico), `disconnect!`
+  fecha a conexão/encerra o subprocesso. Só transporte stdio por ora.
 - **Models**: protocolo `adk.models/Llm`, registry regex→factory,
   `GeminiLlm` sobre o SDK oficial `com.google.genai` (não-streaming e
   streaming).
@@ -85,7 +93,11 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
 - `transfer_to_agent` só é resolvido a partir do Runner operando na árvore
   inteira; uma transferência no meio de um SequentialAgent/ParallelAgent/
   LoopAgent não interrompe a composição em andamento.
+- `adk.tools.mcp` só suporta transporte stdio (sem SSE/Streamable HTTP
+  ainda) e é uma lista estática de tools (conectada/listada uma única vez)
+  — não reage a mudanças na lista de tools do servidor depois da conexão.
 - Fora de escopo (ver README): memory/artifact service persistente,
-  planners, code executors, toolsets MCP/OpenAPI, evaluation framework,
-  auth framework, telemetry, servidor/UI de dev (`adk web`/`adk api_server`/
-  `adk eval`), outros provedores de modelo além do Gemini.
+  planners, code executors locais, retrieval local/customizado (arquivos,
+  LlamaIndex), toolset OpenAPI, evaluation framework, auth framework,
+  telemetry, servidor/UI de dev (`adk web`/`adk api_server`/`adk eval`),
+  outros provedores de modelo além do Gemini.

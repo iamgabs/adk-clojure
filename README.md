@@ -60,6 +60,10 @@ upstream ADK.
   model resolves server-side (no local invocation): `google-search`,
   `url-context`, `code-execution`, `vertex-ai-search`, and
   `vertex-ai-rag-retrieval`.
+- **MCP toolset** — `adk.tools.mcp` connects to an MCP server over stdio
+  (via the official `io.modelcontextprotocol.sdk` Java SDK) and wraps its
+  tools as `Tool`s. An optional dependency — see
+  [MCP toolset](#mcp-toolset) below.
 - **Gemini out of the box** — an `Llm` protocol plus a Gemini
   implementation on top of the official `com.google.genai:google-genai`
   SDK, registered automatically.
@@ -178,6 +182,37 @@ and filling in `GOOGLE_API_KEY` is enough — no `export` needed. (There's no
 `adk run`/`adk web`/`adk eval` yet — just file scaffolding; see the
 generated project's own `README.md`.)
 
+### MCP toolset
+
+`adk.tools.mcp` is an **optional** integration — the MCP SDK isn't in
+adk-clojure's own `:deps` (to keep the core small), so add it to *your*
+`deps.edn`:
+
+```clojure
+{:deps {io.modelcontextprotocol.sdk/mcp-core {:mvn/version "2.1.0"}
+        io.modelcontextprotocol.sdk/mcp-json-jackson2 {:mvn/version "2.1.0"}}}
+```
+
+Then connect to an MCP server over stdio and use its tools like any other:
+
+```clojure
+(require '[adk.tools.mcp :as mcp])
+
+(def client (mcp/connect! {:command "npx"
+                            :args ["-y" "@modelcontextprotocol/server-everything"]}))
+(def mcp-tools (mcp/mcp-tools client))  ;; -> vector of adk.tools/Tool
+
+(llm-agent/llm-agent {:name "agent" :model "gemini-2.0-flash" :tools mcp-tools})
+
+;; when done:
+(mcp/disconnect! client)
+```
+
+Only stdio transport (spawns a local server process) for now, and
+`mcp-tools` connects + lists the server's tools **once**, as a static
+vector — it isn't a dynamic toolset that reacts to the server's tool list
+changing later. See "Known limitations" below.
+
 ## 📚 Documentation
 
 There's no hosted docs site yet (unlike `adk.dev` for adk-python) — the
@@ -226,11 +261,13 @@ change before a larger PR is appreciated.
   Sequential/Parallel/LoopAgent doesn't interrupt that composition.
 - No CLI/dev server (`adk run`/`adk web`/`adk eval`/`adk deploy`) beyond the
   `adk.cli.create` scaffolding command.
+- `adk.tools.mcp` only supports stdio transport (no SSE/Streamable HTTP
+  yet) and is a static, one-time tool list — not a dynamic toolset that
+  reacts to the server's tools changing after connection.
 - Out of scope for now: persistent memory/artifact services, planners,
   local code executors (sandboxed, non-Gemini-native), local/custom
-  retrieval (files, LlamaIndex), MCP/OpenAPI toolsets, the evaluation
-  framework, the auth framework, telemetry, and model providers other than
-  Gemini.
+  retrieval (files, LlamaIndex), OpenAPI toolset, the evaluation framework,
+  the auth framework, telemetry, and model providers other than Gemini.
 
 ## 📄 License
 
