@@ -8,11 +8,21 @@
 
   `:sub-agents`, quando presente, não é executado diretamente por este
   agente (diferente de SequentialAgent/ParallelAgent/LoopAgent) — serve só
-  como alvos possíveis de `transfer_to_agent` via AutoFlow."
+  como alvos possíveis de `transfer_to_agent` via AutoFlow.
+
+  O require de `adk.models.gemini` abaixo é só pelo efeito colateral: é ele
+  que registra os padrões \"gemini-.*\"/\"gemma-.*\" em `adk.models/resolve-model`
+  (ver `adk.models/register-llm!`). Sem isso, `:model \"gemini-2.0-flash\"`
+  (uma string) nunca resolveria pra nenhum Llm — e esse namespace é o ponto
+  de entrada natural de quem só quer construir um LlmAgent, então garantimos
+  aqui que o Gemini já vem pronto para uso, igual ao comportamento do
+  adk-python/adk-java (lá o Gemini é embutido, não um plugin separado que
+  você precisa lembrar de importar)."
   (:require [adk.agents :as agents]
             [adk.flows :as flows]
             [adk.flows.single-flow :as single-flow]
-            [adk.flows.auto-flow :as auto-flow]))
+            [adk.flows.auto-flow :as auto-flow]
+            [adk.models.gemini]))
 
 (def defaults
   {:sub-agents []
