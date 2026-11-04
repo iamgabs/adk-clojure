@@ -4,17 +4,22 @@
   esse valor do estado da sessão (via `adk.context/current-session`) para
   compor sua instrução e cumprimentar a pessoa pelo nome.
 
-  Requer GOOGLE_API_KEY no ambiente (API key do Gemini — ver
-  https://aistudio.google.com/apikey). Rode com:
+  Requer GOOGLE_API_KEY (API key do Gemini — ver
+  https://aistudio.google.com/apikey), vindo de um `.env` na raiz do
+  projeto (copie `.env.example` para `.env` e preencha) ou de uma variável
+  de ambiente real. Rode com:
 
-    GOOGLE_API_KEY=... clojure -M -e \"(require 'two-agent-pipeline) (two-agent-pipeline/-main)\"
+    clojure -M -e \"(require 'two-agent-pipeline) (two-agent-pipeline/-main)\"
 
   ou abra um REPL (`clj -A:repl`) e chame `(-main)` interativamente."
-  (:require [adk.agents.llm-agent :as llm-agent]
+  (:require [adk.env :as env]
+            [adk.agents.llm-agent :as llm-agent]
             [adk.agents.sequential-agent :as sequential-agent]
             [adk.context :as context]
             [adk.runner :as runner]
             [adk.events :as events]))
+
+(env/load-env!)
 
 (defn- build-pipeline []
   (let [extractor (llm-agent/llm-agent

@@ -31,6 +31,9 @@ builders, AutoValue, and RxJava:
   metadata), `AgentTool` (an agent used as a tool by another agent).
 - **Models** — an `Llm` protocol plus a Gemini implementation on top of the
   official `com.google.genai:google-genai` SDK.
+- **`.env` support** — `adk.env/load-env!` loads a `.env` file (the same
+  `KEY=VALUE` convention `python-dotenv` uses in adk-python), so
+  `GOOGLE_API_KEY` doesn't require a manual shell `export`.
 - **Flows** — `SingleFlow` and `AutoFlow` (with agent-to-agent control
   transfer), following the same request/response processor pipeline and
   `before`/`after` callbacks on agent/model/tool.
@@ -83,15 +86,20 @@ adk-clojure checkout, a `README.md`, and a `.env.example`.
 clj -M -m adk.cli.create my-agent [target-dir]
 ```
 
-See the generated project's `README.md` for how to run it. (There's no
-`adk run`/`adk web`/`adk eval` yet — just file scaffolding.)
+The generated `agent.clj` already calls `(adk.env/load-env!)`, so copying
+`.env.example` to `.env` and filling in `GOOGLE_API_KEY` is enough — no
+`export` needed. See the generated project's `README.md` for details.
+(There's no `adk run`/`adk web`/`adk eval` yet — just file scaffolding.)
 
 ## Quick start
 
 ```clojure
-(require '[adk.agents.llm-agent :as llm-agent]
+(require '[adk.env :as env]
+         '[adk.agents.llm-agent :as llm-agent]
          '[adk.runner :as runner]
          '[adk.events :as events])
+
+(env/load-env!)  ;; loads GOOGLE_API_KEY from ./.env, if present
 
 (def agent
   (llm-agent/llm-agent {:name "assistant" :model "gemini-2.0-flash"
@@ -104,9 +112,11 @@ See the generated project's `README.md` for how to run it. (There's no
   (println (:author ev) "->" (events/text ev)))
 ```
 
-Requires `GOOGLE_API_KEY` in the environment (or Vertex AI configuration —
-see `adk.models.gemini/make-client`). See `examples/two_agent_pipeline.clj`
-for a two-agent pipeline (Sequential composition + state propagation).
+Requires `GOOGLE_API_KEY` — either in a `.env` file (copy `.env.example`)
+or as a real environment variable, which always takes precedence (or Vertex
+AI configuration — see `adk.models.gemini/make-client`). See
+`examples/two_agent_pipeline.clj` for a two-agent pipeline (Sequential
+composition + state propagation).
 
 ## Development
 

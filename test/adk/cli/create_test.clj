@@ -29,10 +29,16 @@
               (is (str/includes? content "(ns my-agent.agent"))
               (is (str/includes? content "(def root-agent"))
               (is (str/includes? content "\"gemini-2.0-flash\""))
-              (is (str/includes? content "\"my-agent\"")))))
-        (testing "README e .env.example também são gerados"
+              (is (str/includes? content "\"my-agent\""))
+              (testing "carrega .env automaticamente, sem precisar de export manual"
+                (is (str/includes? content "[adk.env :as env]"))
+                (is (str/includes? content "(env/load-env!)"))))))
+        (testing "README, .env.example e .gitignore também são gerados"
           (is (.exists (io/file dir "README.md")))
-          (is (.exists (io/file dir ".env.example")))))
+          (is (.exists (io/file dir ".env.example")))
+          (is (str/includes? (slurp (io/file dir ".env.example")) "GOOGLE_API_KEY="))
+          (testing ".gitignore nunca deixa o .env de verdade vazar pro git"
+            (is (str/includes? (slurp (io/file dir ".gitignore")) ".env")))))
       (finally (delete-recursively! base)))))
 
 (deftest refuses-to-overwrite-non-empty-dir

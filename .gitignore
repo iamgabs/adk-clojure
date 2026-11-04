@@ -3,3 +3,4 @@
 /.nrepl-port
 *.jar
 .DS_Store
+.env

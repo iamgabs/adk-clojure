@@ -18,8 +18,10 @@
                             adk-clojure (a biblioteca ainda não está
                             publicada em nenhum repositório Maven/Clojars;
                             quando estiver, troque por uma coordenada normal)
-    <dir>/src/<ns>.clj    — um LlmAgent mínimo pronto pra editar
-    <dir>/.env.example    — placeholder de GOOGLE_API_KEY
+    <dir>/src/<ns>.clj    — um LlmAgent mínimo pronto pra editar, já
+                            carregando .env via `adk.env/load-env!`
+    <dir>/.env.example    — placeholder de GOOGLE_API_KEY (copie para .env)
+    <dir>/.gitignore      — ignora .env/target/.cpcache
     <dir>/README.md       — como rodar
 
   NOTA v0.1: isto é só scaffolding de arquivos — não há equivalente a
@@ -62,7 +64,12 @@
     (str "(ns %s\n"
          "  \"Agente gerado por `adk.cli.create` — edite :instruction/:model/:tools\n"
          "  conforme precisar. `root-agent` é o que você passa pro Runner.\"\n"
-         "  (:require [adk.agents.llm-agent :as llm-agent]))\n\n"
+         "  (:require [adk.env :as env]\n"
+         "            [adk.agents.llm-agent :as llm-agent]))\n\n"
+         ";; Carrega ./.env (GOOGLE_API_KEY etc), se existir — veja .env.example.\n"
+         ";; Não precisa de `export` manual no shell; uma variável de ambiente real\n"
+         ";; sempre tem prioridade sobre o que estiver no .env.\n"
+         "(env/load-env!)\n\n"
          "(def root-agent\n"
          "  (llm-agent/llm-agent\n"
          "    {:name \"%s\"\n"
@@ -76,10 +83,15 @@
     (str "# %s\n\n"
          "Agente gerado por `adk.cli.create` (adk-clojure).\n\n"
          "## Rodar\n\n"
-         "1. Copie `.env.example` para `.env` (ou exporte a variável direto) com sua\n"
-         "   chave do Gemini — veja https://aistudio.google.com/apikey\n"
-         "2. `export GOOGLE_API_KEY=...`\n"
-         "3. Abra um REPL ou rode:\n\n"
+         "1. Copie `.env.example` para `.env` e preencha com sua chave do Gemini —\n"
+         "   veja https://aistudio.google.com/apikey\n\n"
+         "   ```bash\n"
+         "   cp .env.example .env\n"
+         "   ```\n\n"
+         "   (`%s.clj` já carrega esse `.env` sozinho via `adk.env/load-env!` — não\n"
+         "   precisa de `export` manual. Se preferir, uma variável de ambiente real\n"
+         "   também funciona e tem prioridade sobre o `.env`.)\n\n"
+         "2. Abra um REPL ou rode:\n\n"
          "```bash\n"
          "clj -M -e \"(require '[%s :as agent] '[adk.runner :as runner] '[adk.events :as events])\n"
          "            (doseq [ev (runner/run (runner/in-memory-runner agent/root-agent)\n"
@@ -87,9 +99,11 @@
          "                                      :new-message {:role \\\"user\\\" :parts [{:text \\\"Oi!\\\"}]}})]\n"
          "              (println (:author ev) (events/text ev)))\"\n"
          "```\n")
-    agent-slug agent-ns))
+    agent-slug agent-ns agent-ns))
 
 (def ^:private env-example-content "GOOGLE_API_KEY=\nGOOGLE_GENAI_USE_VERTEXAI=false\n")
+
+(def ^:private gitignore-content "/target\n/.cpcache\n/.nrepl-port\n.env\n")
 
 (defn- write-file! [^java.io.File f content]
   (io/make-parents f)
@@ -124,6 +138,7 @@
                  (agent-clj-content agent-ns agent-slug model instruction))
     (write-file! (io/file dir "README.md") (readme-content agent-slug agent-ns))
     (write-file! (io/file dir ".env.example") env-example-content)
+    (write-file! (io/file dir ".gitignore") gitignore-content)
     {:dir (str dir) :agent-ns agent-ns}))
 
 (defn -main
@@ -134,4 +149,5 @@
     (let [{:keys [dir agent-ns]} (create-agent! agent-name (when dir {:dir dir}))]
       (println "Projeto criado em" dir)
       (println "Namespace do agente:" agent-ns)
-      (println "Próximo passo: export GOOGLE_API_KEY=... && veja" (str dir "/README.md")))))
+      (println "Próximo passo: cp" (str dir "/.env.example") (str dir "/.env")
+               "(preencha GOOGLE_API_KEY) && veja" (str dir "/README.md")))))

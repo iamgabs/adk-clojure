@@ -36,8 +36,21 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
   tipos Java do SDK.
 - **CLI de scaffolding**: `adk.cli.create` — equivalente mínimo a
   `adk create <app_name>`, gera um novo projeto de agente (LlmAgent +
-  deps.edn com `:local/root` + README + .env.example) a partir de um
-  template. Sem equivalente a `adk run`/`adk web`/`adk eval` ainda.
+  deps.edn com `:local/root` + README + .env.example + .gitignore) a
+  partir de um template. Sem equivalente a `adk run`/`adk web`/`adk eval`
+  ainda.
+- **Suporte a `.env`**: `adk.env` carrega um arquivo `.env` (`CHAVE=valor`,
+  o mesmo formato que `python-dotenv` usa no adk-python) para dentro do
+  processo — `adk.models.gemini/make-client` consulta `adk.env/getenv`
+  como fallback quando `:api-key`/`:vertex-ai?` não são dados
+  explicitamente, então `GOOGLE_API_KEY` não precisa mais de `export`
+  manual no shell. O template de `adk.cli.create` já chama
+  `(adk.env/load-env!)` automaticamente.
+- **Instalação local**: `clj -T:build install` instala o jar no repositório
+  Maven local (`~/.m2`) desta máquina — qualquer projeto local passa a
+  poder depender de adk-clojure via `{:mvn/version "0.1.0-SNAPSHOT"}`, sem
+  `:local/root`. (Corrigido um bug onde `install` reusava um jar antigo em
+  `target/` em vez de sempre reconstruir.)
 - **Testes**: `MockLlm` + helpers (`simplify-events`), cobrindo os 9
   cenários críticos do plano de implementação (LlmAgent simples e com tool
   call, Sequential propagando estado, Loop saindo via escalate, Parallel

@@ -9,6 +9,7 @@
   suficiente para uso comum; estender conforme necessário (safety settings,
   thinking config, etc. ainda não são mapeados)."
   (:require [clojure.string :as str]
+            [adk.env :as env]
             [adk.models :as models]
             [adk.genai.content :as content]
             [adk.genai.schema :as schema]
@@ -19,9 +20,23 @@
 
 (defn- opt [^java.util.Optional o] (when (and o (.isPresent o)) (.get o)))
 
+(defn- env-api-key []
+  (or (env/getenv "GOOGLE_API_KEY") (env/getenv "GEMINI_API_KEY")))
+
+(defn- env-vertex-ai? []
+  (= "true" (some-> (env/getenv "GOOGLE_GENAI_USE_VERTEXAI") str/lower-case)))
+
 (defn make-client
+  "`api-key`/`vertex-ai?` não dados explicitamente caem de volta para
+  `adk.env/getenv` (que consulta um `.env` carregado via `adk.env/load-env!`
+  antes da variável de ambiente real do processo) — assim um `.env` com
+  GOOGLE_API_KEY funciona tanto para uso direto de `gemini-llm` quanto para
+  o caminho default `(llm-agent {:model \"gemini-2.0-flash\"})`, sem precisar
+  de `export` manual no shell."
   ^Client [{:keys [api-key vertex-ai? project location]}]
-  (let [b (Client/builder)
+  (let [api-key (or api-key (env-api-key))
+        vertex-ai? (if (some? vertex-ai?) vertex-ai? (env-vertex-ai?))
+        b (Client/builder)
         b (if api-key (.apiKey b ^String api-key) b)
         b (if vertex-ai? (.vertexAI b true) b)
         b (if project (.project b ^String project) b)

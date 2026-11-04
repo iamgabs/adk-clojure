@@ -26,10 +26,11 @@
   "Instala o jar no repositório Maven local (~/.m2) desta máquina — depois
   disso, qualquer projeto Clojure local pode depender de adk-clojure via
   {:mvn/version \"0.1.0-SNAPSHOT\"}, sem precisar de :local/root nem de
-  clonar o repositório. Roda `jar` antes, se o jar ainda não existir."
+  clonar o repositório. SEMPRE reconstrói o jar primeiro (não reusa um jar
+  antigo em target/), pra nunca instalar uma versão desatualizada do
+  código-fonte."
   [opts]
-  (when-not (.exists (java.io.File. jar-file))
-    (jar opts))
+  (jar opts)
   (b/install {:class-dir class-dir
               :lib lib
               :version version
