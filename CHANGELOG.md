@@ -27,11 +27,20 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
   `exit-loop-tool` built-in.
 - **Grounding tools**: protocolo `adk.tools/GroundingTool` para tools
   "built-in" que não são function-calling de verdade (o modelo resolve do
-  lado do servidor) — `adk.tools.google-search/google-search-tool` é a
-  primeira (Google Search nativo do Gemini). `adk.flows.processors/
-  tools-declaration` separa essas de tools comuns no `LlmRequest`
-  (`:grounding-tools` vs `:tools`); `adk.models.gemini` converte cada spec
-  reconhecida (`:google-search`) numa entrada `Tool` própria do SDK.
+  lado do servidor). `adk.flows.processors/tools-declaration` separa essas
+  de tools comuns no `LlmRequest` (`:grounding-tools` vs `:tools`);
+  `adk.models.gemini` converte cada spec reconhecida numa entrada `Tool`
+  própria do SDK. Cinco implementadas:
+  - `adk.tools.google-search/google-search-tool` — Google Search nativo.
+  - `adk.tools.url-context/url-context-tool` — leitura de URLs mencionadas.
+  - `adk.tools.code-execution/code-execution-tool` — execução de código
+    nativa do Gemini (NÃO um executor local/sandboxado — isso continua
+    fora de escopo).
+  - `adk.tools.vertex-ai-search/vertex-ai-search-tool` — busca num
+    datastore/engine do Vertex AI Search (exige `:datastore` ou `:engine`).
+  - `adk.tools.vertex-ai-rag-retrieval/vertex-ai-rag-retrieval-tool` —
+    retrieval contra corpora do Vertex AI RAG Engine (exige
+    `:rag-corpora`).
 - **Models**: protocolo `adk.models/Llm`, registry regex→factory,
   `GeminiLlm` sobre o SDK oficial `com.google.genai` (não-streaming e
   streaming).

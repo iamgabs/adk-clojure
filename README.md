@@ -55,8 +55,11 @@ upstream ADK.
   as upstream ADK; agent-to-agent control transfer via `transfer_to_agent`.
 - **Code-first tools** — any Clojure function becomes a tool via metadata
   (`FunctionTool`), or wrap a whole agent as a tool for another agent
-  (`AgentTool`). One built-in tool so far: `adk.tools.google-search`
-  (Gemini's native Google Search grounding).
+  (`AgentTool`).
+- **Built-in grounding tools** — `adk.tools/GroundingTool` for tools the
+  model resolves server-side (no local invocation): `google-search`,
+  `url-context`, `code-execution`, `vertex-ai-search`, and
+  `vertex-ai-rag-retrieval`.
 - **Gemini out of the box** — an `Llm` protocol plus a Gemini
   implementation on top of the official `com.google.genai:google-genai`
   SDK, registered automatically.
@@ -224,8 +227,10 @@ change before a larger PR is appreciated.
 - No CLI/dev server (`adk run`/`adk web`/`adk eval`/`adk deploy`) beyond the
   `adk.cli.create` scaffolding command.
 - Out of scope for now: persistent memory/artifact services, planners,
-  code executors, MCP/OpenAPI toolsets, the evaluation framework, the auth
-  framework, telemetry, and model providers other than Gemini.
+  local code executors (sandboxed, non-Gemini-native), local/custom
+  retrieval (files, LlamaIndex), MCP/OpenAPI toolsets, the evaluation
+  framework, the auth framework, telemetry, and model providers other than
+  Gemini.
 
 ## 📄 License
 

@@ -16,7 +16,8 @@
             [adk.tools :as tools]
             [adk.concurrency :as concurrency])
   (:import [com.google.genai Client]
-           [com.google.genai.types GenerateContentConfig Tool GenerateContentResponse GoogleSearch]))
+           [com.google.genai.types GenerateContentConfig Tool GenerateContentResponse
+            GoogleSearch UrlContext ToolCodeExecution Retrieval VertexAISearch VertexRagStore]))
 
 (defn- opt [^java.util.Optional o] (when (and o (.isPresent o)) (.get o)))
 
@@ -43,14 +44,50 @@
         b (if location (.location b ^String location) b)]
     (.build b)))
 
+(defn- vertex-ai-search->genai
+  ^VertexAISearch [{:keys [datastore engine filter max-results]}]
+  (let [b (VertexAISearch/builder)
+        b (if datastore (.datastore b ^String datastore) b)
+        b (if engine (.engine b ^String engine) b)
+        b (if filter (.filter b ^String filter) b)
+        b (if max-results (.maxResults b (int max-results)) b)]
+    (.build b)))
+
+(defn- vertex-rag-store->genai
+  ^VertexRagStore [{:keys [rag-corpora similarity-top-k vector-distance-threshold]}]
+  (let [b (VertexRagStore/builder)
+        b (if (seq rag-corpora) (.ragCorpora b ^java.util.List (vec rag-corpora)) b)
+        b (if similarity-top-k (.similarityTopK b (int similarity-top-k)) b)
+        b (if vector-distance-threshold (.vectorDistanceThreshold b (double vector-distance-threshold)) b)]
+    (.build b)))
+
 (defn- grounding-spec->tool
   "Converte uma spec genérica de `adk.tools/GroundingTool` (ver
   `adk.models/llm-request` docstring) num `Tool` do SDK. Chaves
   desconhecidas são ignoradas (nil), em vez de lançar — outra implementação
   de Llm pode reconhecer chaves que o Gemini não entende."
-  ^Tool [{:keys [google-search]}]
-  (when (some? google-search)
-    (-> (Tool/builder) (.googleSearch (.build (GoogleSearch/builder))) .build)))
+  ^Tool [{:keys [google-search url-context code-execution vertex-ai-search vertex-ai-rag-retrieval]}]
+  (cond
+    (some? google-search)
+    (-> (Tool/builder) (.googleSearch (.build (GoogleSearch/builder))) .build)
+
+    (some? url-context)
+    (-> (Tool/builder) (.urlContext (.build (UrlContext/builder))) .build)
+
+    (some? code-execution)
+    (-> (Tool/builder) (.codeExecution (.build (ToolCodeExecution/builder))) .build)
+
+    (some? vertex-ai-search)
+    (-> (Tool/builder)
+        (.retrieval (.build (.vertexAiSearch (Retrieval/builder) (vertex-ai-search->genai vertex-ai-search))))
+        .build)
+
+    (some? vertex-ai-rag-retrieval)
+    (-> (Tool/builder)
+        (.retrieval (.build (.vertexRagStore (Retrieval/builder) (vertex-rag-store->genai vertex-ai-rag-retrieval))))
+        .build)
+
+    :else nil))
 
 (defn- request->config
   ^GenerateContentConfig [{:keys [system-instruction config tools grounding-tools]}]

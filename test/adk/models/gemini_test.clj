@@ -7,8 +7,11 @@
   (:require [clojure.test :refer [deftest testing is]]
             [adk.models :as models]
             [adk.models.gemini :as gemini]
+            [adk.tools :as tools]
             [adk.tools.function-tool :as ft]
-            [adk.tools.google-search :as google-search]))
+            [adk.tools.google-search :as google-search]
+            [adk.tools.vertex-ai-search :as vertex-ai-search]
+            [adk.tools.vertex-ai-rag-retrieval :as rag]))
 
 (deftest builds-llm-without-network-call
   (let [llm (gemini/gemini-llm {:model "gemini-2.0-flash" :client-opts {:api-key "fake-key-for-construction-only"}})]
@@ -39,6 +42,42 @@
         gemini-tools (vec (.get (.tools cfg)))]
     (is (= 1 (count gemini-tools)))
     (is (.isPresent (.googleSearch (first gemini-tools))))))
+
+(deftest request->config-url-context
+  (let [request->config #'gemini/request->config
+        request (models/llm-request {:grounding-tools [{:url-context {}}]})
+        gemini-tools (vec (.get (.tools (request->config request))))]
+    (is (= 1 (count gemini-tools)))
+    (is (.isPresent (.urlContext (first gemini-tools))))))
+
+(deftest request->config-code-execution
+  (let [request->config #'gemini/request->config
+        request (models/llm-request {:grounding-tools [{:code-execution {}}]})
+        gemini-tools (vec (.get (.tools (request->config request))))]
+    (is (= 1 (count gemini-tools)))
+    (is (.isPresent (.codeExecution (first gemini-tools))))))
+
+(deftest request->config-vertex-ai-search
+  (let [request->config #'gemini/request->config
+        spec (tools/grounding-spec (vertex-ai-search/vertex-ai-search-tool
+                                      {:datastore "projects/p/dataStores/d" :max-results 7}))
+        request (models/llm-request {:grounding-tools [spec]})
+        gemini-tool (first (.get (.tools (request->config request))))
+        retrieval (.get (.retrieval gemini-tool))
+        vais (.get (.vertexAiSearch retrieval))]
+    (is (= "projects/p/dataStores/d" (.get (.datastore vais))))
+    (is (= 7 (.get (.maxResults vais))))))
+
+(deftest request->config-vertex-ai-rag-retrieval
+  (let [request->config #'gemini/request->config
+        spec (tools/grounding-spec (rag/vertex-ai-rag-retrieval-tool
+                                      {:rag-corpora ["projects/p/ragCorpora/1"] :similarity-top-k 3}))
+        request (models/llm-request {:grounding-tools [spec]})
+        gemini-tool (first (.get (.tools (request->config request))))
+        retrieval (.get (.retrieval gemini-tool))
+        rag-store (.get (.vertexRagStore retrieval))]
+    (is (= ["projects/p/ragCorpora/1"] (vec (.get (.ragCorpora rag-store)))))
+    (is (= 3 (.get (.similarityTopK rag-store))))))
 
 (deftest ^:integration real-gemini-call
   (if-not (System/getenv "GOOGLE_API_KEY")
