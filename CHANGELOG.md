@@ -59,6 +59,18 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
   Testado contra um servidor HTTP real local (`com.sun.net.httpserver`,
   puro JDK) — round-trip completo de path param, query param, corpo com
   `$ref` resolvido, e auth aceita/rejeitada pelo servidor de verdade.
+- **Web console** (`adk.web`): equivalente mínimo a `adk web` — console de
+  chat de uma página só (HTML+JS embutidos), servido via Ring + Jetty
+  embutido, com a resposta do agente chegando via Server-Sent Events
+  (consumindo a lazy-seq do Runner incrementalmente, não só no final) e o
+  `session_id` preservado entre mensagens pra manter o histórico da
+  conversa. Rotas: `GET /` (console), `GET /apps` (apps registradas),
+  `POST /run` (roda uma mensagem, stream SSE da resposta). Dependência
+  OPCIONAL (`ring-core` + `ring-jetty-adapter` + `data.json` — não entra em
+  `:deps`). Testado contra um servidor Jetty real numa porta efêmera,
+  incluindo reuso de sessão entre duas chamadas (confirma que o histórico
+  realmente persiste). NÃO é a dev UI oficial — sem trace viewer, sem eval
+  authoring, sem scan de diretório de agentes.
 - **Models**: protocolo `adk.models/Llm`, registry regex→factory,
   `GeminiLlm` sobre o SDK oficial `com.google.genai` (não-streaming e
   streaming).
@@ -110,8 +122,11 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
   único servidor/base URL, resolução de `$ref` local (sem $ref externo), e
   auth estática bearer/API-key (sem fluxo OAuth2). Sem parser de YAML
   embutido.
+- `adk.web` é um console de testes mínimo, não a dev UI oficial — sem trace
+  viewer, sem eval authoring, sem scan automático de diretório de agentes
+  (as apps são registradas em código, via `{nome Runner}`).
 - Fora de escopo (ver README): memory/artifact service persistente,
   planners, code executors locais, retrieval local/customizado (arquivos,
-  LlamaIndex), evaluation framework, auth framework, telemetry, servidor/UI
-  de dev (`adk web`/`adk api_server`/`adk eval`), outros provedores de
-  modelo além do Gemini.
+  LlamaIndex), evaluation framework, auth framework, telemetry, `adk run`
+  (CLI interativo)/`adk eval`/`adk deploy`, outros provedores de modelo
+  além do Gemini.

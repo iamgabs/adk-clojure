@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>adk-clojure — console de teste</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.25rem; }
+  #log { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; height: 420px; overflow-y: auto; margin-bottom: 1rem; background: #fafafa; }
+  .msg { margin-bottom: 0.75rem; line-height: 1.4; }
+  .author { font-weight: 600; margin-right: 0.35rem; }
+  .user .author { color: #1a73e8; }
+  .agent .author { color: #188038; }
+  .error .author { color: #d93025; }
+  form { display: flex; gap: 0.5rem; }
+  input[type=text] { flex: 1; padding: 0.5rem; font-size: 1rem; }
+  button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+  select { padding: 0.4rem; }
+  .meta { color: #666; font-size: 0.85rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+  .meta code { background: #eee; padding: 0.1rem 0.35rem; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>adk-clojure — console de teste</h1>
+<p style="color:#666">Console mínimo pra testar um agente pelo navegador — não é a dev UI completa do ADK original (sem trace viewer, sem eval).</p>
+<div class="meta">
+  app: <select id="app"></select>
+  session: <code id="session-id">(nova)</code>
+  <button id="reset" type="button">nova sessão</button>
+</div>
+<div id="log"></div>
+<form id="form">
+  <input type="text" id="text" placeholder="Digite uma mensagem..." autocomplete="off" />
+  <button type="submit">Enviar</button>
+</form>
+<script>
+(function () {
+  const userId = "web-console-user";
+  let sessionId = null;
+
+  const logEl = document.getElementById("log");
+  const appSelect = document.getElementById("app");
+  const sessionIdEl = document.getElementById("session-id");
+  const form = document.getElementById("form");
+  const textInput = document.getElementById("text");
+
+  function addMessage(author, text, cls) {
+    const div = document.createElement("div");
+    div.className = "msg " + (cls || "");
+    const authorSpan = document.createElement("span");
+    authorSpan.className = "author";
+    authorSpan.textContent = author + ":";
+    div.appendChild(authorSpan);
+    div.appendChild(document.createTextNode(text));
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function loadApps() {
+    const res = await fetch("/apps");
+    const data = await res.json();
+    appSelect.innerHTML = "";
+    for (const app of (data.apps || [])) {
+      const opt = document.createElement("option");
+      opt.value = app;
+      opt.textContent = app;
+      appSelect.appendChild(opt);
+    }
+  }
+
+  document.getElementById("reset").addEventListener("click", function () {
+    sessionId = null;
+    sessionIdEl.textContent = "(nova)";
+    logEl.innerHTML = "";
+  });
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const text = textInput.value.trim();
+    if (!text) return;
+    textInput.value = "";
+    addMessage("você", text, "user");
+
+    let res;
+    try {
+      res = await fetch("/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ app: appSelect.value, user_id: userId, session_id: sessionId, text: text })
+      });
+    } catch (err) {
+      addMessage("erro", "Falha ao conectar: " + err, "error");
+      return;
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(function () { return {}; });
+      addMessage("erro", body.error || ("HTTP " + res.status), "error");
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop();
+      for (const part of parts) {
+        let eventType = "message";
+        let data = null;
+        for (const line of part.split("\n")) {
+          if (line.indexOf("event: ") === 0) eventType = line.slice(7);
+          else if (line.indexOf("data: ") === 0) data = line.slice(6);
+        }
+        if (!data) continue;
+        let parsed;
+        try { parsed = JSON.parse(data); } catch (e) { continue; }
+        if (eventType === "session") {
+          sessionId = parsed.session_id;
+          sessionIdEl.textContent = sessionId;
+        } else if (eventType === "error") {
+          addMessage("erro", parsed.message, "error");
+        } else if (eventType === "done") {
+          // fim do stream — nada a fazer
+        } else if (parsed.text) {
+          addMessage(parsed.author, parsed.text, "agent");
+        }
+      }
+    }
+  });
+
+  loadApps();
+})();
+</script>
+</body>
+</html>

@@ -66,6 +66,9 @@ upstream ADK.
 - **OpenAPI toolset** — `adk.tools.openapi` turns an OpenAPI 3.x spec into
   one real-HTTP-calling tool per operation. Also optional — see "OpenAPI
   toolset" below.
+- **Web console** — `adk.web`, a minimal equivalent of `adk web`: a
+  one-page browser chat console (over Server-Sent Events) to try an agent
+  interactively. Optional — see "Web console" below.
 - **Gemini out of the box** — an `Llm` protocol plus a Gemini
   implementation on top of the official `com.google.genai:google-genai`
   SDK, registered automatically.
@@ -180,9 +183,10 @@ clj -M -m adk.cli.create my-agent [target-dir]
 Generates a new project with a minimal `LlmAgent`, a `deps.edn`, a
 `README.md`, `.gitignore`, and `.env.example`. The generated `agent.clj`
 already calls `(adk.env/load-env!)`, so copying `.env.example` to `.env`
-and filling in `GOOGLE_API_KEY` is enough — no `export` needed. (There's no
-`adk run`/`adk web`/`adk eval` yet — just file scaffolding; see the
-generated project's own `README.md`.)
+and filling in `GOOGLE_API_KEY` is enough — no `export` needed. (This is
+just file scaffolding — no `adk run`/`adk eval` equivalent; see "Web
+console" below for the minimal `adk web` equivalent.) See the generated
+project's own `README.md` for how to run it.
 
 ### MCP toolset
 
@@ -244,6 +248,34 @@ static API-key auth. No YAML parsing (bring your own parser and pass a
 map), no multipart/form-data bodies, no OAuth2 flows — see "Known
 limitations" below.
 
+### Web console
+
+`adk.web` is also an **optional** integration — add to *your* `deps.edn`:
+
+```clojure
+{:deps {ring/ring-core {:mvn/version "1.15.6"}
+        ring/ring-jetty-adapter {:mvn/version "1.15.6"}
+        org.clojure/data.json {:mvn/version "2.5.1"}}}
+```
+
+Then serve one or more agents (as `Runner`s) as a one-page browser chat
+console:
+
+```clojure
+(require '[adk.web :as web])
+
+(def server (web/start-server! {"my-agent" my-runner} {:port 8080}))
+;; open http://localhost:8080
+(web/stop-server! server)
+```
+
+See `examples/web_console.clj` for a full runnable version. Agent
+responses stream to the page live via Server-Sent Events, and the session
+id is preserved across messages so a conversation keeps its history. This
+is a minimal testing console, **not** a port of the official dev UI — no
+trace viewer, no eval authoring, no multi-agent directory scanning. See
+"Known limitations" below.
+
 ## 📚 Documentation
 
 There's no hosted docs site yet (unlike `adk.dev` for adk-python) — the
@@ -290,8 +322,10 @@ change before a larger PR is appreciated.
 - `transfer_to_agent` is only resolved by the Runner walking the whole
   agent tree; a transfer in the middle of a running
   Sequential/Parallel/LoopAgent doesn't interrupt that composition.
-- No CLI/dev server (`adk run`/`adk web`/`adk eval`/`adk deploy`) beyond the
-  `adk.cli.create` scaffolding command.
+- No `adk run` (interactive CLI)/`adk eval`/`adk deploy` equivalent, and
+  `adk.web` is a minimal testing console, not a port of the official dev
+  UI — no trace viewer, no eval authoring, no scanning a directory of
+  agent modules (you register `{app-name Runner}` in code).
 - `adk.tools.mcp` only supports stdio transport (no SSE/Streamable HTTP
   yet) and is a static, one-time tool list — not a dynamic toolset that
   reacts to the server's tools changing after connection.
