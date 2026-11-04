@@ -62,8 +62,10 @@ upstream ADK.
   `vertex-ai-rag-retrieval`.
 - **MCP toolset** — `adk.tools.mcp` connects to an MCP server over stdio
   (via the official `io.modelcontextprotocol.sdk` Java SDK) and wraps its
-  tools as `Tool`s. An optional dependency — see
-  [MCP toolset](#mcp-toolset) below.
+  tools as `Tool`s. An optional dependency — see "MCP toolset" below.
+- **OpenAPI toolset** — `adk.tools.openapi` turns an OpenAPI 3.x spec into
+  one real-HTTP-calling tool per operation. Also optional — see "OpenAPI
+  toolset" below.
 - **Gemini out of the box** — an `Llm` protocol plus a Gemini
   implementation on top of the official `com.google.genai:google-genai`
   SDK, registered automatically.
@@ -213,6 +215,35 @@ Only stdio transport (spawns a local server process) for now, and
 vector — it isn't a dynamic toolset that reacts to the server's tool list
 changing later. See "Known limitations" below.
 
+### OpenAPI toolset
+
+`adk.tools.openapi` is also an **optional** integration — add to *your*
+`deps.edn`:
+
+```clojure
+{:deps {org.clojure/data.json {:mvn/version "2.5.1"}}}
+```
+
+(the HTTP client itself is `java.net.http.HttpClient`, already built into
+the JDK — only the JSON parser/encoder is an extra dependency). Point it at
+an already-parsed OpenAPI 3.x spec (a Clojure map) and it generates one
+tool per operation, each making a real HTTP call when invoked:
+
+```clojure
+(require '[adk.tools.openapi :as openapi])
+
+(def pet-tools (openapi/openapi-tools spec {:base-url "https://api.example.com"
+                                             :auth {:type :bearer :token "..."}}))
+
+(llm-agent/llm-agent {:name "agent" :model "gemini-2.0-flash" :tools pet-tools})
+```
+
+Supports path/query/header parameters, JSON request/response bodies, local
+`$ref` resolution (within the same spec), and either bearer-token or
+static API-key auth. No YAML parsing (bring your own parser and pass a
+map), no multipart/form-data bodies, no OAuth2 flows — see "Known
+limitations" below.
+
 ## 📚 Documentation
 
 There's no hosted docs site yet (unlike `adk.dev` for adk-python) — the
@@ -264,10 +295,13 @@ change before a larger PR is appreciated.
 - `adk.tools.mcp` only supports stdio transport (no SSE/Streamable HTTP
   yet) and is a static, one-time tool list — not a dynamic toolset that
   reacts to the server's tools changing after connection.
+- `adk.tools.openapi` only supports JSON bodies (no multipart/form-data),
+  a single server/base URL, local `$ref` resolution (no external refs),
+  and static bearer/API-key auth (no OAuth2 flows). No YAML spec parsing.
 - Out of scope for now: persistent memory/artifact services, planners,
   local code executors (sandboxed, non-Gemini-native), local/custom
-  retrieval (files, LlamaIndex), OpenAPI toolset, the evaluation framework,
-  the auth framework, telemetry, and model providers other than Gemini.
+  retrieval (files, LlamaIndex), the evaluation framework, the auth
+  framework, telemetry, and model providers other than Gemini.
 
 ## 📄 License
 

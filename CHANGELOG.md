@@ -49,6 +49,16 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
   de uso: `connect!` conecta e faz o handshake, `mcp-tools` lista e envolve
   as tools UMA VEZ (vetor estático, não um toolset dinâmico), `disconnect!`
   fecha a conexão/encerra o subprocesso. Só transporte stdio por ora.
+- **OpenAPI toolset**: `adk.tools.openapi` gera uma `adk.tools/Tool` por
+  operação de uma spec OpenAPI 3.x (map Clojure já parseado), cada uma
+  fazendo uma chamada HTTP real via `java.net.http.HttpClient` (JDK, sem
+  lib extra) quando invocada. Dependência OPCIONAL (`org.clojure/data.json`
+  pro parse/encode JSON — não entra em `:deps`). Suporta parâmetros
+  path/query/header, corpo JSON, resolução de `$ref` local (profundidade
+  limitada), e auth estática (bearer token ou API-key em header/query).
+  Testado contra um servidor HTTP real local (`com.sun.net.httpserver`,
+  puro JDK) — round-trip completo de path param, query param, corpo com
+  `$ref` resolvido, e auth aceita/rejeitada pelo servidor de verdade.
 - **Models**: protocolo `adk.models/Llm`, registry regex→factory,
   `GeminiLlm` sobre o SDK oficial `com.google.genai` (não-streaming e
   streaming).
@@ -96,8 +106,12 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
 - `adk.tools.mcp` só suporta transporte stdio (sem SSE/Streamable HTTP
   ainda) e é uma lista estática de tools (conectada/listada uma única vez)
   — não reage a mudanças na lista de tools do servidor depois da conexão.
+- `adk.tools.openapi` só suporta corpo JSON (sem multipart/form-data), um
+  único servidor/base URL, resolução de `$ref` local (sem $ref externo), e
+  auth estática bearer/API-key (sem fluxo OAuth2). Sem parser de YAML
+  embutido.
 - Fora de escopo (ver README): memory/artifact service persistente,
   planners, code executors locais, retrieval local/customizado (arquivos,
-  LlamaIndex), toolset OpenAPI, evaluation framework, auth framework,
-  telemetry, servidor/UI de dev (`adk web`/`adk api_server`/`adk eval`),
-  outros provedores de modelo além do Gemini.
+  LlamaIndex), evaluation framework, auth framework, telemetry, servidor/UI
+  de dev (`adk web`/`adk api_server`/`adk eval`), outros provedores de
+  modelo além do Gemini.
