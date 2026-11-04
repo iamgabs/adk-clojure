@@ -43,10 +43,20 @@
              (->> (context/events-on-branch ctx) (keep :content) vec)))))
 
 (defn tools-declaration
-  "Popula `:tools` do LlmRequest a partir de `agent.tools` (já resolvidas
-  como implementações de `adk.tools/Tool` — nenhum wrapping automático de
-  função crua acontece aqui, ver `adk.tools.function-tool`)."
+  "Popula `:tools`/`:grounding-tools` do LlmRequest a partir de
+  `agent.tools` (já resolvidas como implementações de `adk.tools/Tool` —
+  nenhum wrapping automático de função crua acontece aqui, ver
+  `adk.tools.function-tool`).
+
+  Tools que também satisfazem `adk.tools/GroundingTool` (ex:
+  `adk.tools.google-search/google-search-tool`) vão para
+  `:grounding-tools` (specs genéricas, interpretadas pela implementação de
+  Llm) em vez de `:tools` (function declarations) — elas não participam do
+  loop de function-calling."
   [request ctx]
   (let [agent (:agent ctx)
-        tool-map (into {} (map (juxt tools/tool-name identity)) (:tools agent))]
-    (update request :tools merge tool-map)))
+        {grounding true plain false} (group-by #(satisfies? tools/GroundingTool %) (:tools agent))
+        tool-map (into {} (map (juxt tools/tool-name identity)) plain)]
+    (-> request
+        (update :tools merge tool-map)
+        (update :grounding-tools (fnil into []) (map tools/grounding-spec grounding)))))

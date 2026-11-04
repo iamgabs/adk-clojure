@@ -4,9 +4,14 @@
   `models/base_llm.py`+`registry.py` (adk-python).
 
   LlmRequest: {:model :contents [Content...] :system-instruction :config {...}
-               :tools {nome -> Tool}}
+               :tools {nome -> Tool} :grounding-tools [{:google-search {}} ...]}
   LlmResponse: {:content Content :finish-reason :usage-metadata {...}
-                :partial bool :turn-complete bool :error-code :error-message}")
+                :partial bool :turn-complete bool :error-code :error-message}
+
+  `:grounding-tools` são specs genéricas de tools \"built-in\" que não
+  passam por function-calling (ver `adk.tools/GroundingTool`) — cada
+  implementação de Llm interpreta as chaves que conhece (ex:
+  `adk.models.gemini` sabe converter `:google-search`).")
 
 (defprotocol Llm
   (model-name [llm])
@@ -16,13 +21,14 @@
     seguidas de uma final agregada (:partial false)."))
 
 (defn llm-request
-  [{:keys [model contents system-instruction config tools]
-    :or {contents [] config {} tools {}}}]
+  [{:keys [model contents system-instruction config tools grounding-tools]
+    :or {contents [] config {} tools {} grounding-tools []}}]
   {:model model
    :contents contents
    :system-instruction system-instruction
    :config config
-   :tools tools})
+   :tools tools
+   :grounding-tools grounding-tools})
 
 (defn llm-response
   [{:keys [content finish-reason usage-metadata partial turn-complete

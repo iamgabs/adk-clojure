@@ -55,7 +55,8 @@ upstream ADK.
   as upstream ADK; agent-to-agent control transfer via `transfer_to_agent`.
 - **Code-first tools** — any Clojure function becomes a tool via metadata
   (`FunctionTool`), or wrap a whole agent as a tool for another agent
-  (`AgentTool`).
+  (`AgentTool`). One built-in tool so far: `adk.tools.google-search`
+  (Gemini's native Google Search grounding).
 - **Gemini out of the box** — an `Llm` protocol plus a Gemini
   implementation on top of the official `com.google.genai:google-genai`
   SDK, registered automatically.

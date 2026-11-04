@@ -25,6 +25,13 @@ atoms, lazy-seq + threads — sem RxJava, sem core.async).
   tool via metadata `:adk/tool` + Malli, com injeção automática de
   ToolContext via `^:adk/tool-context`), `AgentTool` (agente como tool),
   `exit-loop-tool` built-in.
+- **Grounding tools**: protocolo `adk.tools/GroundingTool` para tools
+  "built-in" que não são function-calling de verdade (o modelo resolve do
+  lado do servidor) — `adk.tools.google-search/google-search-tool` é a
+  primeira (Google Search nativo do Gemini). `adk.flows.processors/
+  tools-declaration` separa essas de tools comuns no `LlmRequest`
+  (`:grounding-tools` vs `:tools`); `adk.models.gemini` converte cada spec
+  reconhecida (`:google-search`) numa entrada `Tool` própria do SDK.
 - **Models**: protocolo `adk.models/Llm`, registry regex→factory,
   `GeminiLlm` sobre o SDK oficial `com.google.genai` (não-streaming e
   streaming).

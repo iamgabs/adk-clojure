@@ -27,7 +27,8 @@
    :contents []
    :system-instruction nil
    :config (or (:generate-content-config agent) {})
-   :tools {}})
+   :tools {}
+   :grounding-tools []})
 
 (defn- response->event [response ctx author]
   (events/event {:invocation-id (:invocation-id ctx)

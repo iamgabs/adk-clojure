@@ -16,7 +16,7 @@
             [adk.tools :as tools]
             [adk.concurrency :as concurrency])
   (:import [com.google.genai Client]
-           [com.google.genai.types GenerateContentConfig Tool GenerateContentResponse]))
+           [com.google.genai.types GenerateContentConfig Tool GenerateContentResponse GoogleSearch]))
 
 (defn- opt [^java.util.Optional o] (when (and o (.isPresent o)) (.get o)))
 
@@ -43,9 +43,28 @@
         b (if location (.location b ^String location) b)]
     (.build b)))
 
+(defn- grounding-spec->tool
+  "Converte uma spec genérica de `adk.tools/GroundingTool` (ver
+  `adk.models/llm-request` docstring) num `Tool` do SDK. Chaves
+  desconhecidas são ignoradas (nil), em vez de lançar — outra implementação
+  de Llm pode reconhecer chaves que o Gemini não entende."
+  ^Tool [{:keys [google-search]}]
+  (when (some? google-search)
+    (-> (Tool/builder) (.googleSearch (.build (GoogleSearch/builder))) .build)))
+
 (defn- request->config
-  ^GenerateContentConfig [{:keys [system-instruction config tools]}]
+  ^GenerateContentConfig [{:keys [system-instruction config tools grounding-tools]}]
   (let [{:keys [temperature max-output-tokens response-modalities]} config
+        function-declarations-tool
+        (when (seq tools)
+          (-> (Tool/builder)
+              (.functionDeclarations
+                ^java.util.List
+                (mapv (fn [[_ t]] (schema/declaration->function-declaration (tools/tool-declaration t)))
+                      tools))
+              .build))
+        all-tools (cond-> (vec (keep grounding-spec->tool grounding-tools))
+                    function-declarations-tool (conj function-declarations-tool))
         b (GenerateContentConfig/builder)
         b (if system-instruction
             (.systemInstruction b (content/map->content {:role "user" :parts [{:text system-instruction}]}))
@@ -53,15 +72,7 @@
         b (if temperature (.temperature b (float temperature)) b)
         b (if max-output-tokens (.maxOutputTokens b (int max-output-tokens)) b)
         b (if (seq response-modalities) (.responseModalities b ^java.util.List (vec response-modalities)) b)
-        b (if (seq tools)
-            (.tools b ^java.util.List
-                    [(-> (Tool/builder)
-                         (.functionDeclarations
-                           ^java.util.List
-                           (mapv (fn [[_ t]] (schema/declaration->function-declaration (tools/tool-declaration t)))
-                                 tools))
-                         .build)])
-            b)]
+        b (if (seq all-tools) (.tools b ^java.util.List all-tools) b)]
     (.build b)))
 
 (defn- finish-reason->kw [fr]

@@ -24,6 +24,26 @@
     não for um map, é empacotado como {:result valor} antes de virar
     function-response."))
 
+(defprotocol GroundingTool
+  "Protocolo opcional para tools \"built-in\" que não são function-calling
+  de verdade — ao invés de serem invocadas por nós, elas pedem pro próprio
+  modelo fazer a ação do lado do servidor (ex: Google Search nativo do
+  Gemini). Espelha o caso especial de `BaseTool.processLlmRequest` no
+  adk-java/adk-python, quando uma tool sobrescreve esse método para mutar o
+  request diretamente em vez de expor uma FunctionDeclaration.
+
+  Uma tool que satisfaz `GroundingTool` ainda deve satisfazer `Tool`
+  (para ter nome/descrição), mas sua `tool-declaration`/`invoke-tool` nunca
+  são usadas — `grounding-spec` é o que de fato importa, e é consumido
+  pelos request processors (`adk.flows.processors/tools-declaration`) e
+  pela implementação de `Llm` (ex: `adk.models.gemini`), não pelo loop de
+  execução de function-calls (`run-tool-calls`)."
+  (grounding-spec [t]
+    "-> map genérico descrevendo a configuração nativa a injetar no
+    request, ex: {:google-search {}}. Cada chave é interpretada pela
+    implementação de Llm correspondente; uma que não reconheça uma chave
+    deve ignorá-la."))
+
 (defn- first-truthy
   "Roda `fns` em ordem, passando `args`, e retorna o primeiro resultado
   truthy (ou nil se nenhuma produzir um). Espelha a semântica de lista de
